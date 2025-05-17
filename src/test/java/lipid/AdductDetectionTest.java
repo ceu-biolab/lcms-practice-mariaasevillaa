@@ -33,12 +33,14 @@ public class AdductDetectionTest {
         double annotationIntensity = 80000.0;
         double annotationRT = 6.5d;
         Annotation annotation = new Annotation(lipid, annotationMZ, annotationIntensity, annotationRT, IoniationMode.POSITIVE, Set.of(mH, mNa));
+        annotation.detectAdduct(10);
 
 
         // Then we should call the algorithmic/knowledge system rules fired to detect the adduct and Set it!
         //
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
         assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
+        System.out.println("Adduct result: " + annotation.getAdduct());
     }
 
 
@@ -49,7 +51,7 @@ public class AdductDetectionTest {
 
         Lipid lipid = new Lipid(1, "PE 36:2", "C41H78NO8P", "PE", 36, 2);
         Annotation annotation = new Annotation(lipid, mh.getMz(), mh.getIntensity(), 7.5d, IoniationMode.POSITIVE, Set.of(mh, mhH2O));
-
+        annotation.detectAdduct(10);
 
 
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
@@ -66,10 +68,46 @@ public class AdductDetectionTest {
 
         Lipid lipid = new Lipid(3, "TG 54:3", "C57H104O6", "TG", 54, 3);
         Annotation annotation = new Annotation(lipid, singlyCharged.getMz(), singlyCharged.getIntensity(), 10d, IoniationMode.POSITIVE, Set.of(singlyCharged, doublyCharged));
-
+        annotation.detectAdduct(10);
         assertNotNull("[M+H]+ should be detected", annotation.getAdduct());
 
         assertEquals( "Adduct inferred from lowest mz in group","[M+H]+", annotation.getAdduct());
+    }
+    @Test
+    public void shouldDetectNaAdduct() {
+        Peak mH   = new Peak(700.500, 100000.0);         // [M+H]+
+        Peak mNa  = new Peak(722.482,  80000.0);         // [M+Na]+
+        Lipid lipid = new Lipid(1, "PC 34:1", "C42H82NO8P", "PC", 34, 1);
+
+        Annotation a = new Annotation(lipid, mNa.getMz(), mNa.getIntensity(), 5.0,
+                IoniationMode.POSITIVE, Set.of(mH, mNa));
+        a.detectAdduct(10);
+
+        assertNotNull("[M+Na]+ should be detected", a.getAdduct());
+        assertEquals("[M+Na]+", a.getAdduct());
+    }
+
+    @Test
+    public void shouldDetectPotassiumAdduct() {
+        // [M+H]+ at 700.500 → monoisotopic mass ≈ 700.500 − 1.007276 = 699.492724
+        // [M+K]+ mz = 699.492724 + 38.963158 ≈ 738.455882
+        Peak mH = new Peak(700.500, 100000.0);      // [M+H]+
+        Peak mK = new Peak(738.456,  80000.0);      // [M+K]+
+
+        Lipid lipid = new Lipid(1, "PC 34:1", "C42H82NO8P", "PC", 34, 1);
+        Annotation a = new Annotation(
+                lipid,
+                mK.getMz(),
+                mK.getIntensity(),
+                5.0,
+                IoniationMode.POSITIVE,
+                Set.of(mH, mK)
+        );
+
+        a.detectAdduct(10);
+
+        assertNotNull("[M+K]+ should be detected", a.getAdduct());
+        assertEquals("[M+K]+", a.getAdduct());
     }
 
 }
